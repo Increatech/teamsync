@@ -16,12 +16,14 @@
         .modal { transition: opacity 0.25s ease; }
         body.modal-active { overflow: hidden; }
         .hidden-view { display: none !important; }
+        .read-only-text { @apply text-slate-700 font-medium; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans selection:bg-indigo-100 selection:text-indigo-800">
 
-    <!-- HIDDEN FILE INPUT -->
-    <input type="file" id="fileInput" accept=".md,.txt" class="hidden" onchange="handleFileSelect(event)">
+    <!-- HIDDEN FILE INPUTS -->
+    <input type="file" id="editFileInput" accept=".md,.txt" class="hidden" onchange="handleFileSelect(event, 'edit')">
+    <input type="file" id="viewFileInput" accept=".md,.txt" class="hidden" onchange="handleFileSelect(event, 'view')">
 
     <!-- VIEW 1: LANDING / SETUP -->
     <div id="landingView" class="min-h-screen flex flex-col items-center justify-center p-4">
@@ -33,23 +35,32 @@
             <p class="text-slate-500 text-lg">Rotational Standup & Reporting Tool</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
-            <!-- Option A: Load Previous -->
-            <button onclick="document.getElementById('fileInput').click()" class="group relative bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left">
-                <div class="mb-4 bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
-                    <i class="ph ph-upload-simple text-2xl"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-2">Load Previous Report</h3>
-                <p class="text-slate-500 text-sm">Upload the Markdown file from the last meeting. Configures team, projects, and imports pending plans automatically.</p>
-            </button>
-
-            <!-- Option B: Start Fresh -->
-            <button onclick="startFreshSession()" class="group relative bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all text-left">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <!-- Option A: Start Fresh -->
+            <button onclick="startFreshSession()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col h-full">
                 <div class="mb-4 bg-emerald-50 w-12 h-12 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                     <i class="ph ph-plus-circle text-2xl"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-900 mb-2">Start Fresh Session</h3>
-                <p class="text-slate-500 text-sm">Create a brand new session. Starts empty so you can configure your exact team.</p>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">New Session</h3>
+                <p class="text-slate-500 text-sm flex-grow">Start a fresh meeting. Configures a new blank board.</p>
+            </button>
+
+            <!-- Option B: Load Previous -->
+            <button onclick="document.getElementById('editFileInput').click()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left flex flex-col h-full">
+                <div class="mb-4 bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
+                    <i class="ph ph-upload-simple text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Load Previous</h3>
+                <p class="text-slate-500 text-sm flex-grow">Imports incomplete tasks (Not Started/Blocked) and action items from the last report for review.</p>
+            </button>
+
+            <!-- Option C: View Only -->
+            <button onclick="document.getElementById('viewFileInput').click()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-amber-500 hover:shadow-md transition-all text-left flex flex-col h-full">
+                <div class="mb-4 bg-amber-50 w-12 h-12 rounded-xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
+                    <i class="ph ph-chart-line-up text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-900 mb-2">Analyze Report</h3>
+                <p class="text-slate-500 text-sm flex-grow">View Only. Upload a report to view statistics and charts without editing.</p>
             </button>
         </div>
         
@@ -67,18 +78,13 @@
                         <i class="ph ph-arrows-clockwise text-xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold text-slate-900 tracking-tight">TeamSync</h1>
-                        <p class="text-xs text-slate-500 font-medium">Session Active</p>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-tight" id="headerTitle">TeamSync</h1>
+                        <p class="text-xs text-slate-500 font-medium" id="headerSubtitle">Session Active</p>
                     </div>
                 </div>
                 
-                <div class="flex items-center gap-2">
-                    <button onclick="toggleSettingsModal()" class="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-300">
-                        <i class="ph ph-users"></i> Team & Projects
-                    </button>
-                    <button onclick="downloadReport()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-200">
-                        <i class="ph ph-download-simple"></i> Export Report
-                    </button>
+                <div class="flex items-center gap-2" id="headerControls">
+                    <!-- Injected JS based on mode -->
                 </div>
             </div>
         </header>
@@ -90,27 +96,8 @@
                 <!-- Meeting Details -->
                 <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <h3 class="font-bold text-slate-800 text-sm mb-4 border-b border-slate-100 pb-2">Meeting Details</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Date</label>
-                            <input type="date" id="meetingDate" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Facilitator</label>
-                            <select id="facilitatorSelect" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none bg-white">
-                                <!-- Populated by JS -->
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Focus</label>
-                            <select id="meetingDay" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none bg-white">
-                                <option value="Monday">Monday (Weekly Goals)</option>
-                                <option value="Tuesday">Tuesday (Blocker Check)</option>
-                                <option value="Wednesday">Wednesday (Mid-week)</option>
-                                <option value="Thursday">Thursday (Progress)</option>
-                                <option value="Friday">Friday (Review)</option>
-                            </select>
-                        </div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="metadataContainer">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
 
@@ -133,9 +120,9 @@
                         <h3 class="font-semibold text-slate-800 flex items-center gap-2">
                             <i class="ph ph-kanban text-indigo-500"></i> Individual Progress Log
                         </h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Track status against previous commitments.</p>
+                        <p class="text-xs text-slate-500 mt-0.5">Review previous items and add new commitments.</p>
                     </div>
-                    <button onclick="addNewRow()" class="flex items-center gap-1 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors shadow-sm shadow-indigo-100">
+                    <button id="addTaskBtn" onclick="addNewRow()" class="flex items-center gap-1 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors shadow-sm shadow-indigo-100">
                         <i class="ph ph-plus-bold"></i> Add Task
                     </button>
                 </div>
@@ -159,15 +146,15 @@
                     </table>
                     <div id="emptyStateMsg" class="hidden p-8 text-center text-slate-400 text-sm">
                         <i class="ph ph-list-dashes text-2xl mb-2"></i>
-                        <p>No tasks yet. Add members in "Team & Projects" then click "Add Task".</p>
+                        <p>No tasks found.</p>
                     </div>
                 </div>
             </section>
 
             <!-- BOTTOM SECTION: ANALYTICS & ACTIONS -->
-            <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                <!-- Analytics -->
+                <!-- Analytics Column 1: Overall Status -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <h3 class="font-bold text-slate-800 text-sm mb-4">Status Overview</h3>
                     <div class="flex items-center justify-center">
@@ -178,18 +165,28 @@
                     <div id="statsLegend" class="flex justify-center gap-4 mt-2"></div>
                 </div>
 
-                <!-- Action Items -->
+                <!-- Analytics Column 2: Project Breakdown -->
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+                    <h3 class="font-bold text-slate-800 text-sm mb-4">Project Statistics</h3>
+                    <div class="flex items-center justify-center">
+                        <div class="chart-container">
+                            <canvas id="projectChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Items (Full Width) -->
                 <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
                     <div class="p-4 border-b border-slate-100 bg-amber-50/30 flex justify-between items-center">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
-                            <i class="ph ph-lightning text-amber-500"></i> Action Items
+                            <i class="ph ph-lightning text-amber-500"></i> Action Items & Follow Ups
                         </h3>
                     </div>
                     <div class="p-4 flex-grow">
                         <ul id="action-items-list" class="space-y-2 mb-4"></ul>
                         
-                        <form onsubmit="addActionItem(event)" class="flex gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-                            <input type="text" id="newActionInput" placeholder="Describe action item..." class="flex-1 text-sm bg-transparent border-none focus:ring-0 outline-none">
+                        <form id="actionInputForm" onsubmit="addActionItem(event)" class="flex gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                            <input type="text" id="newActionInput" placeholder="Describe new action item..." class="flex-1 text-sm bg-transparent border-none focus:ring-0 outline-none">
                             <div class="w-px bg-slate-300 my-1"></div>
                             <select id="newActionOwner" class="w-32 text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-600 cursor-pointer">
                                 <!-- Populated by JS -->
@@ -205,7 +202,9 @@
             <section class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                      <h3 class="font-bold text-slate-800 text-sm mb-2">Executive Summary / Highlights</h3>
-                     <textarea id="highlightsInput" class="w-full text-sm text-slate-600 border border-slate-200 rounded-lg p-3 focus:border-indigo-500 focus:outline-none resize-none h-24" placeholder="Briefly summarize major wins or critical updates..."></textarea>
+                     <div id="highlightsContainer">
+                        <!-- Populated by JS (Textarea or Static text) -->
+                     </div>
                 </div>
                 
                 <div class="bg-indigo-50 rounded-xl border border-indigo-100 p-5">
@@ -213,9 +212,9 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase text-indigo-400 mb-1">Next Facilitator</label>
-                             <select id="nextFacilitator" class="w-full text-sm font-medium text-indigo-900 border border-indigo-200 rounded px-2 py-2 focus:border-indigo-500 focus:outline-none bg-white">
-                                <!-- Populated by JS -->
-                            </select>
+                             <div id="nextFacilContainer">
+                                 <!-- Populated by JS -->
+                             </div>
                         </div>
                         <p class="text-xs text-indigo-600/80 italic">
                             The exported report will contain the current Team & Project configuration, so the next facilitator doesn't need to set it up again.
@@ -268,17 +267,19 @@
     <!-- JAVASCRIPT LOGIC -->
     <script>
         // --- 1. APP STATE & DEFAULTS ---
-        // Defaults are now EMPTY for fresh starts
         const defaultState = {
             members: [], 
             projects: [],
             tasks: [],
-            actionItems: [],
-            attendees: []
+            actionItems: [], // { done: bool, owner: str, desc: str, isCarriedOver: bool }
+            attendees: [],
+            meta: { date: new Date().toISOString().split('T')[0], facilitator: '', day: 'Monday', nextFacil: '', highlights: '' },
+            readOnly: false
         };
 
         let appState = JSON.parse(JSON.stringify(defaultState));
         let statusChart = null;
+        let projectChart = null;
 
         // --- 2. VIEW MANAGEMENT ---
         
@@ -289,20 +290,19 @@
         }
 
         function startFreshSession() {
-            // Load Defaults (Empty)
             appState = JSON.parse(JSON.stringify(defaultState));
+            appState.readOnly = false;
             
             initializeDashboard();
             switchView('dashboard');
             
-            // Open settings immediately because lists are empty
+            // Open settings immediately
             setTimeout(toggleSettingsModal, 500);
         }
 
         function initializeDashboard() {
-            // Set Date
-            document.getElementById('meetingDate').valueAsDate = new Date();
-            
+            updateHeaderControls();
+            renderMetadataControls();
             renderConfigLists();
             renderDropdowns(); 
             renderAttendance();
@@ -311,10 +311,83 @@
             updateCharts();
         }
 
-        // --- 3. CONFIGURATION & DROPDOWNS ---
+        function updateHeaderControls() {
+            const container = document.getElementById('headerControls');
+            if (appState.readOnly) {
+                document.getElementById('headerTitle').textContent = 'TeamSync Viewer';
+                document.getElementById('headerSubtitle').textContent = 'Read-Only Mode';
+                container.innerHTML = `
+                    <span class="text-xs bg-amber-100 text-amber-800 px-3 py-1.5 rounded-full font-medium border border-amber-200">
+                        <i class="ph ph-eye"></i> View Only
+                    </span>
+                `;
+                // Hide inputs
+                document.getElementById('addTaskBtn').classList.add('hidden');
+                document.getElementById('actionInputForm').classList.add('hidden');
+            } else {
+                document.getElementById('headerTitle').textContent = 'TeamSync';
+                document.getElementById('headerSubtitle').textContent = 'Session Active';
+                container.innerHTML = `
+                    <button onclick="toggleSettingsModal()" class="flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-sm font-medium transition-colors border border-slate-300">
+                        <i class="ph ph-users"></i> Team & Projects
+                    </button>
+                    <button onclick="downloadReport()" class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-lg shadow-indigo-200">
+                        <i class="ph ph-download-simple"></i> Export Report
+                    </button>
+                `;
+                document.getElementById('addTaskBtn').classList.remove('hidden');
+                document.getElementById('actionInputForm').classList.remove('hidden');
+            }
+        }
+
+        function renderMetadataControls() {
+            const container = document.getElementById('metadataContainer');
+            const highlightsContainer = document.getElementById('highlightsContainer');
+            const nextFacilContainer = document.getElementById('nextFacilContainer');
+
+            if (appState.readOnly) {
+                // Read Only View
+                container.innerHTML = `
+                    <div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Date</label><span class="font-medium text-slate-900">${appState.meta.date}</span></div>
+                    <div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Facilitator</label><span class="font-medium text-slate-900">${appState.meta.facilitator}</span></div>
+                    <div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Focus</label><span class="font-medium text-slate-900">${appState.meta.day}</span></div>
+                `;
+                highlightsContainer.innerHTML = `<div class="p-3 bg-slate-50 rounded-lg text-sm text-slate-700">${appState.meta.highlights || 'No highlights recorded.'}</div>`;
+                nextFacilContainer.innerHTML = `<span class="font-medium text-indigo-900">${appState.meta.nextFacil || 'TBD'}</span>`;
+            } else {
+                // Edit View
+                container.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Date</label>
+                        <input type="date" id="meetingDate" value="${appState.meta.date}" onchange="appState.meta.date = this.value" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Facilitator</label>
+                        <select id="facilitatorSelect" onchange="appState.meta.facilitator = this.value" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Focus</label>
+                        <select id="meetingDay" onchange="appState.meta.day = this.value" class="w-full text-sm font-medium text-slate-900 border border-slate-200 rounded px-2 py-1.5 focus:border-indigo-500 focus:outline-none bg-white">
+                            <option value="Monday">Monday (Weekly Goals)</option>
+                            <option value="Tuesday">Tuesday (Blocker Check)</option>
+                            <option value="Wednesday">Wednesday (Mid-week)</option>
+                            <option value="Thursday">Thursday (Progress)</option>
+                            <option value="Friday">Friday (Review)</option>
+                        </select>
+                    </div>
+                `;
+                highlightsContainer.innerHTML = `<textarea id="highlightsInput" onchange="appState.meta.highlights = this.value" class="w-full text-sm text-slate-600 border border-slate-200 rounded-lg p-3 focus:border-indigo-500 focus:outline-none resize-none h-24" placeholder="Briefly summarize major wins...">${appState.meta.highlights}</textarea>`;
+                nextFacilContainer.innerHTML = `<select id="nextFacilitator" onchange="appState.meta.nextFacil = this.value" class="w-full text-sm font-medium text-indigo-900 border border-indigo-200 rounded px-2 py-2 focus:border-indigo-500 focus:outline-none bg-white"></select>`;
+                
+                // Set Values for selects after rendering
+                document.getElementById('meetingDay').value = appState.meta.day;
+            }
+        }
+
+        // --- 3. CONFIGURATION ---
 
         function renderConfigLists() {
-            // Use INDEX for reliable deletion logic
+            if(appState.readOnly) return; 
             document.getElementById('membersList').innerHTML = appState.members.map((m, index) => 
                 `<span class="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 border border-indigo-100">${m} <button onclick="removeConfig('members', ${index})" class="hover:text-rose-500 font-bold px-1">×</button></span>`
             ).join('');
@@ -325,19 +398,20 @@
         }
 
         function renderDropdowns() {
-            const fill = (id, options) => {
+            if(appState.readOnly) return;
+
+            const fill = (id, options, val) => {
                 const el = document.getElementById(id);
-                const currentVal = el.value;
+                if(!el) return;
                 el.innerHTML = options.length > 0 
                     ? options.map(o => `<option value="${o}">${o}</option>`).join('')
                     : `<option value="">-- Add in Settings --</option>`;
-                
-                if(options.includes(currentVal)) el.value = currentVal;
+                if(options.includes(val)) el.value = val;
             };
 
-            fill('facilitatorSelect', appState.members);
-            fill('nextFacilitator', appState.members);
-            fill('newActionOwner', appState.members);
+            fill('facilitatorSelect', appState.members, appState.meta.facilitator);
+            fill('nextFacilitator', appState.members, appState.meta.nextFacil);
+            fill('newActionOwner', appState.members, '');
 
             renderTable(); 
         }
@@ -347,7 +421,6 @@
             if(val && !appState[type].includes(val)) {
                 appState[type].push(val);
                 if(type === 'members') appState.attendees.push(val);
-                
                 document.getElementById(inputId).value = '';
                 renderConfigLists();
                 renderDropdowns();
@@ -358,24 +431,19 @@
         function removeConfig(type, index) {
             const val = appState[type][index];
             if(confirm(`Remove "${val}"?`)) {
-                // Remove by Splice (Index) not Value to prevent duplicates/string errors
                 appState[type].splice(index, 1);
-                
-                if(type === 'members') {
-                    appState.attendees = appState.attendees.filter(a => a !== val);
-                }
-                
+                if(type === 'members') appState.attendees = appState.attendees.filter(a => a !== val);
                 renderConfigLists();
                 renderDropdowns();
                 renderAttendance();
             }
         }
 
-        // --- 4. ATTENDANCE LOGIC ---
+        // --- 4. ATTENDANCE ---
 
         function renderAttendance() {
             const container = document.getElementById('attendanceList');
-            if(appState.members.length === 0) {
+            if(appState.members.length === 0 && !appState.readOnly) {
                 container.innerHTML = `<div class="col-span-2 text-center text-xs text-slate-400 italic py-4">No team members configured yet.</div>`;
                 document.getElementById('attendanceCount').textContent = `0/0`;
                 return;
@@ -383,18 +451,29 @@
 
             container.innerHTML = appState.members.map(m => {
                 const isPresent = appState.attendees.includes(m);
-                return `
-                <label class="flex items-center gap-2 text-xs bg-slate-50 p-2 rounded cursor-pointer border ${isPresent ? 'border-indigo-200 bg-indigo-50/50' : 'border-transparent opacity-50'}">
-                    <input type="checkbox" onchange="toggleAttendance('${m}')" ${isPresent ? 'checked' : ''} class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                    <span class="${isPresent ? 'text-slate-800 font-medium' : 'text-slate-500 line-through'}">${m}</span>
-                </label>
-                `;
+                const baseClass = "flex items-center gap-2 text-xs bg-slate-50 p-2 rounded border";
+                const styleClass = isPresent ? 'border-indigo-200 bg-indigo-50/50' : 'border-transparent opacity-50';
+                
+                if (appState.readOnly) {
+                    return `
+                    <div class="${baseClass} ${styleClass}">
+                        <div class="w-3 h-3 rounded-full ${isPresent ? 'bg-indigo-500' : 'bg-slate-300'}"></div>
+                        <span class="${isPresent ? 'text-slate-800 font-medium' : 'text-slate-500 line-through'}">${m}</span>
+                    </div>`;
+                } else {
+                    return `
+                    <label class="${baseClass} ${styleClass} cursor-pointer">
+                        <input type="checkbox" onchange="toggleAttendance('${m}')" ${isPresent ? 'checked' : ''} class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                        <span class="${isPresent ? 'text-slate-800 font-medium' : 'text-slate-500 line-through'}">${m}</span>
+                    </label>`;
+                }
             }).join('');
             
             document.getElementById('attendanceCount').textContent = `${appState.attendees.length}/${appState.members.length}`;
         }
 
         window.toggleAttendance = function(name) {
+            if(appState.readOnly) return;
             if(appState.attendees.includes(name)) {
                 appState.attendees = appState.attendees.filter(a => a !== name);
             } else {
@@ -403,7 +482,7 @@
             renderAttendance();
         }
 
-        // --- 5. TABLE LOGIC (TASKS) ---
+        // --- 5. TABLE LOGIC ---
 
         function renderTable() {
             const tbody = document.getElementById('task-table-body');
@@ -421,49 +500,48 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-indigo-50/30 transition-colors border-b border-slate-100 last:border-0 group';
                 
-                // Dropdowns with safe fallbacks
-                const memberOpts = appState.members.length > 0 
-                    ? appState.members.map(m => `<option value="${m}" ${m === task.member ? 'selected' : ''}>${m}</option>`).join('')
-                    : `<option value="">Add Members First</option>`;
-                
-                const projectOpts = appState.projects.length > 0 
-                    ? appState.projects.map(p => `<option value="${p}" ${p === task.project ? 'selected' : ''}>${p}</option>`).join('')
-                    : `<option value="">Add Projects First</option>`;
-
                 let statusBg = 'bg-slate-100 text-slate-600';
                 if(task.status === 'Completed') statusBg = 'bg-emerald-100 text-emerald-800';
                 if(task.status === 'In Progress') statusBg = 'bg-amber-100 text-amber-800';
                 if(task.status === 'Not Started') statusBg = 'bg-slate-200 text-slate-700';
                 if(task.status === 'Blocked') statusBg = 'bg-rose-100 text-rose-800';
 
-                tr.innerHTML = `
-                    <td class="p-2 pl-4">
-                        <select onchange="updateTask(${index}, 'member', this.value)" class="w-full bg-transparent text-sm font-medium text-slate-900 border-none focus:ring-0 cursor-pointer">${memberOpts}</select>
-                    </td>
-                    <td class="p-2">
-                        <select onchange="updateTask(${index}, 'project', this.value)" class="w-full text-xs bg-slate-100 rounded px-1 py-1 border-none focus:ring-0 cursor-pointer text-slate-600">${projectOpts}</select>
-                    </td>
-                    <td class="p-2">
-                        <input type="text" value="${task.task}" onchange="updateTask(${index}, 'task', this.value)" class="w-full bg-transparent text-sm border-none focus:ring-0 placeholder-slate-400" placeholder="New Task or Prev. Commitment...">
-                    </td>
-                    <td class="p-2">
-                        <select onchange="updateTask(${index}, 'status', this.value)" class="w-full text-xs rounded px-2 py-1.5 border-none focus:ring-0 cursor-pointer font-medium ${statusBg}">
-                            <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>✅ Completed</option>
-                            <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>⚠️ In Progress</option>
-                            <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>⚪ Not Started</option>
-                            <option value="Blocked" ${task.status === 'Blocked' ? 'selected' : ''}>🛑 Blocked</option>
-                        </select>
-                    </td>
-                    <td class="p-2">
-                         <input type="text" value="${task.plan}" onchange="updateTask(${index}, 'plan', this.value)" class="w-full bg-transparent text-sm border-none focus:ring-0 placeholder-slate-400" placeholder="Next 48 hours...">
-                    </td>
-                    <td class="p-2">
-                         <input type="text" value="${task.blockers}" onchange="updateTask(${index}, 'blockers', this.value)" class="w-full bg-transparent text-xs text-rose-600 font-medium border-none focus:ring-0 placeholder-slate-300" placeholder="None">
-                    </td>
-                    <td class="p-2 text-center">
-                        <button onclick="removeTask(${index})" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><i class="ph ph-trash text-lg"></i></button>
-                    </td>
-                `;
+                // PLAN placeholder logic: If task is "In Progress", show "Optional"
+                const planPlaceholder = "Optional / New Commitment";
+
+                if (appState.readOnly) {
+                    // READ ONLY ROW
+                     tr.innerHTML = `
+                        <td class="p-2 pl-4"><span class="text-sm font-medium text-slate-900">${task.member}</span></td>
+                        <td class="p-2"><span class="text-xs bg-slate-100 rounded px-2 py-1 text-slate-600">${task.project}</span></td>
+                        <td class="p-2"><span class="text-sm text-slate-700">${task.task}</span></td>
+                        <td class="p-2"><span class="text-xs rounded px-2 py-1.5 font-medium ${statusBg}">${task.status}</span></td>
+                        <td class="p-2"><span class="text-sm text-slate-600">${task.plan || '-'}</span></td>
+                        <td class="p-2"><span class="text-xs text-rose-600 font-medium">${task.blockers || '-'}</span></td>
+                        <td class="p-2"></td>
+                    `;
+                } else {
+                    // EDIT ROW
+                    const memberOpts = appState.members.length > 0 ? appState.members.map(m => `<option value="${m}" ${m === task.member ? 'selected' : ''}>${m}</option>`).join('') : `<option value="">Add Members</option>`;
+                    const projectOpts = appState.projects.length > 0 ? appState.projects.map(p => `<option value="${p}" ${p === task.project ? 'selected' : ''}>${p}</option>`).join('') : `<option value="">Add Projects</option>`;
+                    
+                    tr.innerHTML = `
+                        <td class="p-2 pl-4"><select onchange="updateTask(${index}, 'member', this.value)" class="w-full bg-transparent text-sm font-medium text-slate-900 border-none focus:ring-0 cursor-pointer">${memberOpts}</select></td>
+                        <td class="p-2"><select onchange="updateTask(${index}, 'project', this.value)" class="w-full text-xs bg-slate-100 rounded px-1 py-1 border-none focus:ring-0 cursor-pointer text-slate-600">${projectOpts}</select></td>
+                        <td class="p-2"><input type="text" value="${task.task}" onchange="updateTask(${index}, 'task', this.value)" class="w-full bg-transparent text-sm border-none focus:ring-0 placeholder-slate-400" placeholder="Task..."></td>
+                        <td class="p-2">
+                            <select onchange="updateTask(${index}, 'status', this.value)" class="w-full text-xs rounded px-2 py-1.5 border-none focus:ring-0 cursor-pointer font-medium ${statusBg}">
+                                <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>✅ Completed</option>
+                                <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>⚠️ In Progress</option>
+                                <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>⚪ Not Started</option>
+                                <option value="Blocked" ${task.status === 'Blocked' ? 'selected' : ''}>🛑 Blocked</option>
+                            </select>
+                        </td>
+                        <td class="p-2"><input type="text" value="${task.plan}" onchange="updateTask(${index}, 'plan', this.value)" class="w-full bg-transparent text-sm border-none focus:ring-0 placeholder-slate-400" placeholder="${planPlaceholder}"></td>
+                        <td class="p-2"><input type="text" value="${task.blockers}" onchange="updateTask(${index}, 'blockers', this.value)" class="w-full bg-transparent text-xs text-rose-600 font-medium border-none focus:ring-0 placeholder-slate-300" placeholder="None"></td>
+                        <td class="p-2 text-center"><button onclick="removeTask(${index})" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"><i class="ph ph-trash text-lg"></i></button></td>
+                    `;
+                }
                 tbody.appendChild(tr);
             });
         }
@@ -475,19 +553,9 @@
         }
 
         function addNewRow() {
-            // Default to first member/project if available, otherwise empty string
             const defaultMember = appState.members.length > 0 ? appState.members[0] : '';
             const defaultProject = appState.projects.length > 0 ? appState.projects[0] : '';
-
-            appState.tasks.push({ 
-                id: Date.now(), 
-                member: defaultMember, 
-                project: defaultProject, 
-                task: '', 
-                status: 'Not Started', 
-                plan: '', 
-                blockers: '' 
-            });
+            appState.tasks.push({ id: Date.now(), member: defaultMember, project: defaultProject, task: '', status: 'Not Started', plan: '', blockers: '' });
             renderTable();
             updateCharts();
         }
@@ -502,14 +570,19 @@
 
         function renderActionItems() {
             const list = document.getElementById('action-items-list');
-            list.innerHTML = appState.actionItems.map((item, index) => `
+            list.innerHTML = appState.actionItems.map((item, index) => {
+                const badge = item.isCarriedOver 
+                    ? `<span class="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider mr-2">↩ Prev</span>` 
+                    : '';
+                
+                return `
                 <li class="flex items-center gap-2 text-sm group p-2 hover:bg-slate-50 rounded">
-                    <input type="checkbox" class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" ${item.done ? 'checked' : ''}>
-                    <span class="flex-1 text-slate-700 ${item.done ? 'line-through text-slate-400' : ''}">${item.desc}</span>
+                    <input type="checkbox" ${appState.readOnly ? 'disabled' : ''} class="rounded text-indigo-600 focus:ring-indigo-500 border-slate-300" ${item.done ? 'checked' : ''}>
+                    <span class="flex-1 text-slate-700 ${item.done ? 'line-through text-slate-400' : ''}">${badge}${item.desc}</span>
                     <span class="text-xs bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-medium">${item.owner}</span>
-                    <button onclick="removeAction(${index})" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100"><i class="ph ph-x"></i></button>
+                    ${!appState.readOnly ? `<button onclick="removeAction(${index})" class="text-slate-300 hover:text-rose-500 opacity-0 group-hover:opacity-100"><i class="ph ph-x"></i></button>` : ''}
                 </li>
-            `).join('');
+            `}).join('');
         }
 
         function addActionItem(e) {
@@ -517,7 +590,7 @@
             const desc = document.getElementById('newActionInput').value;
             const owner = document.getElementById('newActionOwner').value;
             if(desc && owner) {
-                appState.actionItems.push({ desc, owner, done: false });
+                appState.actionItems.push({ desc, owner, done: false, isCarriedOver: false });
                 document.getElementById('newActionInput').value = '';
                 renderActionItems();
             }
@@ -531,43 +604,80 @@
         // --- 7. CHARTS ---
 
         function updateCharts() {
+            // 1. Overall Status
             const stats = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
+            const projectStats = {}; 
+
             appState.tasks.forEach(t => {
-                const s = t.status.replace(' ', ''); // Handle 'In Progress' -> 'InProgress'
+                const s = t.status.replace(' ', '');
+                
+                // Overall Stats
                 if(stats[s] !== undefined) stats[s]++;
                 else if(t.status === 'In Progress') stats.InProgress++;
                 else if(t.status === 'Not Started') stats.NotStarted++;
+
+                // Project Stats
+                if (!projectStats[t.project]) {
+                    projectStats[t.project] = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
+                }
+                const pStat = projectStats[t.project];
+                if(t.status === 'Completed') pStat.Completed++;
+                else if(t.status === 'In Progress') pStat.InProgress++;
+                else if(t.status === 'Blocked') pStat.Blocked++;
+                else pStat.NotStarted++;
             });
 
-            const data = [stats.Completed, stats.InProgress, stats.NotStarted, stats.Blocked];
-            
+            // Status Chart
+            const dataStatus = [stats.Completed, stats.InProgress, stats.NotStarted, stats.Blocked];
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
-            
             statusChart = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
                     labels: ['Done', 'Active', 'Not Started', 'Blocked'],
-                    datasets: [{
-                        data: data,
-                        backgroundColor: ['#10b981', '#f59e0b', '#e2e8f0', '#e11d48'],
-                        borderWidth: 0,
-                        hoverOffset: 10
-                    }]
+                    datasets: [{ data: dataStatus, backgroundColor: ['#10b981', '#f59e0b', '#e2e8f0', '#e11d48'], borderWidth: 0 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
             });
-
             document.getElementById('statsLegend').innerHTML = `
                 <div class="text-center"><div class="text-lg font-bold text-emerald-600">${stats.Completed}</div><div class="text-[10px] uppercase text-slate-400 font-bold">Done</div></div>
                 <div class="text-center"><div class="text-lg font-bold text-amber-500">${stats.InProgress}</div><div class="text-[10px] uppercase text-slate-400 font-bold">Active</div></div>
                 <div class="text-center"><div class="text-lg font-bold text-rose-500">${stats.Blocked}</div><div class="text-[10px] uppercase text-slate-400 font-bold">Blocked</div></div>
             `;
+
+            // 2. Project Chart (Stacked Bar)
+            const projects = Object.keys(projectStats);
+            const datasetCompleted = projects.map(p => projectStats[p].Completed);
+            const datasetInProgress = projects.map(p => projectStats[p].InProgress);
+            const datasetBlocked = projects.map(p => projectStats[p].Blocked);
+            
+            const ctxProject = document.getElementById('projectChart').getContext('2d');
+            if(projectChart) projectChart.destroy();
+            projectChart = new Chart(ctxProject, {
+                type: 'bar',
+                data: {
+                    labels: projects.length ? projects : ['No Data'],
+                    datasets: [
+                        { label: 'Done', data: datasetCompleted, backgroundColor: '#10b981', borderRadius: 4 },
+                        { label: 'Active', data: datasetInProgress, backgroundColor: '#f59e0b', borderRadius: 4 },
+                        { label: 'Blocked', data: datasetBlocked, backgroundColor: '#e11d48', borderRadius: 4 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, ticks: { precision: 0 } }
+                    },
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, usePointStyle: true } } }
+                }
+            });
         }
 
-        // --- 8. IMPORT (SMART PARSING) ---
+        // --- 8. FILE HANDLING (Edit vs View) ---
 
-        function handleFileSelect(event) {
+        function handleFileSelect(event, mode) {
             const file = event.target.files[0];
             if (!file) return;
 
@@ -575,9 +685,13 @@
             reader.onload = function(e) {
                 const text = e.target.result;
                 try {
-                    parseMarkdown(text);
+                    parseMarkdown(text, mode);
+                    appState.readOnly = (mode === 'view');
                     switchView('dashboard');
-                    setTimeout(() => alert("Report Loaded Successfully! Team configuration restored."), 100);
+                    initializeDashboard();
+                    
+                    if(mode === 'view') alert("Report Loaded in Read-Only Mode.");
+                    else alert("Report Loaded. Team configuration and tasks restored.");
                 } catch(err) {
                     alert("Error parsing file: " + err.message);
                 }
@@ -585,20 +699,64 @@
             reader.readAsText(file);
         }
 
-        function parseMarkdown(mdText) {
+        function parseMarkdown(mdText, mode) {
+            // 1. Config Parsing
             const configMatch = mdText.match(/<!-- CONFIG_DATA_START([\s\S]*?)CONFIG_DATA_END -->/);
             if (configMatch && configMatch[1]) {
                 try {
                     const loadedConfig = JSON.parse(configMatch[1].trim());
                     if(loadedConfig.members) appState.members = loadedConfig.members;
                     if(loadedConfig.projects) appState.projects = loadedConfig.projects;
-                    appState.attendees = [...appState.members];
                 } catch(e) { console.error("Config parse error", e); }
             }
 
-            renderConfigLists();
-            renderDropdowns();
+            // 2. Metadata Extraction
+            const dateMatch = mdText.match(/\*\*Date:\*\* (.*)/);
+            if(dateMatch) appState.meta.date = dateMatch[1].trim();
 
+            const facilMatch = mdText.match(/\*\*Facilitator:\*\* (.*)/);
+            if(facilMatch) appState.meta.facilitator = facilMatch[1].trim();
+            
+            const dayMatch = mdText.match(/\*\*Day:\*\* (.*)/);
+            if(dayMatch) appState.meta.day = dayMatch[1].trim();
+
+            const attendeesMatch = mdText.match(/\*\*Attendees:\*\* (.*)/);
+            if(attendeesMatch) {
+                const attList = attendeesMatch[1].split(',').map(s => s.trim()).filter(s => s !== '' && s !== 'None');
+                appState.attendees = attList;
+            } else {
+                 appState.attendees = [...appState.members];
+            }
+
+            const highlightsMatch = mdText.match(/## 1. .*?\n> (.*)/);
+            if(highlightsMatch) appState.meta.highlights = highlightsMatch[1].trim();
+
+            const nextFacilMatch = mdText.match(/\* \*\*Next Facilitator:\*\* (.*)/);
+            if(nextFacilMatch) appState.meta.nextFacil = nextFacilMatch[1].trim();
+
+            // 3. Action Items Extraction
+            appState.actionItems = [];
+            const actionSection = mdText.match(/## 3. .*?\n([\s\S]*?)## 4./);
+            if(actionSection) {
+                const lines = actionSection[1].split('\n');
+                lines.forEach(l => {
+                    const m = l.match(/\* \[(.*?)\] \*\*(.*?)\*\*: (.*)/);
+                    if(m) {
+                        const isDone = m[1].trim() === 'x';
+                        // LOGIC: In View mode, show all. In Edit mode, ONLY show incomplete.
+                        if (mode === 'view' || (mode === 'edit' && !isDone)) {
+                            appState.actionItems.push({
+                                done: isDone, 
+                                owner: m[2].trim(),
+                                desc: m[3].trim(),
+                                isCarriedOver: (mode === 'edit') 
+                            });
+                        }
+                    }
+                });
+            }
+
+            // 4. Task Table Parsing - IMPROVED LOGIC
             const lines = mdText.split('\n');
             const newTasks = [];
             
@@ -608,29 +766,67 @@
                 if (cols.length < 5) return;
                 if (cols[0].includes('Team Member') || cols[0].includes('---')) return;
 
-                const clean = (str) => str.replace(/\*\*/g, '').replace(/\[|\]/g, ''); 
-                const prevPlan = clean(cols[4]);
+                const clean = (str) => str.replace(/\*\*/g, '').replace(/\[|\]/g, '').trim(); 
                 
-                if (prevPlan && prevPlan.length > 2 && prevPlan !== '-') {
-                     newTasks.push({
+                const rawMember = clean(cols[0]);
+                const rawProject = clean(cols[1]);
+                const rawTask = clean(cols[2]);
+                const rawStatus = clean(cols[3]).replace(/✅|⚠️|🛑|⚪/g, '').trim();
+                const rawPlan = clean(cols[4]);
+                const rawBlocker = clean(cols[5]);
+
+                if (mode === 'view') {
+                    // VIEW MODE: Load exactly as is
+                    newTasks.push({
                         id: Date.now() + Math.random(),
-                        member: clean(cols[0]) || (appState.members.length > 0 ? appState.members[0] : ''),
-                        project: clean(cols[1]) || (appState.projects.length > 0 ? appState.projects[0] : ''),
-                        task: prevPlan, 
-                        status: 'Not Started', 
-                        plan: '',
-                        blockers: ''
+                        member: rawMember,
+                        project: rawProject,
+                        task: rawTask,
+                        status: rawStatus,
+                        plan: rawPlan,
+                        blockers: rawBlocker
                     });
+                } else {
+                    // EDIT MODE (Smart Import)
+                    
+                    // Logic 1: If Task is NOT Completed, Keep it.
+                    // This allows reviewing "Not Started", "Blocked", "In Progress"
+                    if (rawStatus !== 'Completed') {
+                        newTasks.push({
+                            id: Date.now() + Math.random(),
+                            member: rawMember,
+                            project: rawProject,
+                            task: rawTask, // Keep the old task name
+                            status: rawStatus, // Keep old status (user can update it)
+                            plan: '', // Clear plan (it's a new day)
+                            blockers: rawBlocker
+                        });
+                    }
+
+                    // Logic 2: If Task IS Completed, check if there was a Plan.
+                    // If plan exists, promote it to a NEW task.
+                    if (rawStatus === 'Completed' && rawPlan && rawPlan.length > 2 && rawPlan !== '-') {
+                        newTasks.push({
+                            id: Date.now() + Math.random(),
+                            member: rawMember,
+                            project: rawProject,
+                            task: rawPlan, // Promoted Plan -> Task
+                            status: 'Not Started', 
+                            plan: '',
+                            blockers: ''
+                        });
+                    }
                 }
             });
 
             appState.tasks = newTasks;
-            initializeDashboard();
         }
 
-        // --- 9. EXPORT (SMART GENERATION) ---
+        // --- 9. EXPORT ---
 
         function downloadReport() {
+            if(appState.readOnly) return;
+            
             const date = document.getElementById('meetingDate').value;
             const facilitator = document.getElementById('facilitatorSelect').value;
             const day = document.getElementById('meetingDay').value;
@@ -648,10 +844,7 @@
 
             const actionRows = appState.actionItems.map(a => `* [${a.done ? 'x' : ' '}] **${a.owner}**: ${a.desc}`).join('\n');
 
-            const configJson = JSON.stringify({
-                members: appState.members,
-                projects: appState.projects
-            }, null, 2);
+            const configJson = JSON.stringify({ members: appState.members, projects: appState.projects }, null, 2);
 
             const markdown = `# 🔄 Rotational Team Standup Report
 
@@ -695,6 +888,7 @@ CONFIG_DATA_END -->
         }
 
         function toggleSettingsModal() {
+            if(appState.readOnly) return;
             const modal = document.getElementById('settingsModal');
             const body = document.body;
             if (modal.classList.contains('hidden')) {
