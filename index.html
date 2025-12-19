@@ -21,9 +21,11 @@
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans selection:bg-indigo-100 selection:text-indigo-800">
 
+    <!-- HIDDEN FILE INPUTS -->
     <input type="file" id="editFileInput" accept=".md,.txt" class="hidden" onchange="handleFileSelect(event, 'edit')">
     <input type="file" id="viewFileInput" accept=".md,.txt" class="hidden" onchange="handleFileSelect(event, 'view')">
 
+    <!-- VIEW 1: LANDING / SETUP -->
     <div id="landingView" class="min-h-screen flex flex-col items-center justify-center p-4">
         <div class="text-center mb-10">
             <div class="inline-flex items-center justify-center w-20 h-20 bg-indigo-600 text-white rounded-2xl mb-6 shadow-xl shadow-indigo-200">
@@ -34,6 +36,7 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-5xl">
+            <!-- Option A: Start Fresh -->
             <button onclick="startFreshSession()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-emerald-500 hover:shadow-md transition-all text-left flex flex-col h-full">
                 <div class="mb-4 bg-emerald-50 w-12 h-12 rounded-xl flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
                     <i class="ph ph-plus-circle text-2xl"></i>
@@ -42,6 +45,7 @@
                 <p class="text-slate-500 text-sm flex-grow">Start a fresh meeting. Configures a new blank board.</p>
             </button>
 
+            <!-- Option B: Load Previous -->
             <button onclick="document.getElementById('editFileInput').click()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-indigo-500 hover:shadow-md transition-all text-left flex flex-col h-full">
                 <div class="mb-4 bg-indigo-50 w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 group-hover:scale-110 transition-transform">
                     <i class="ph ph-upload-simple text-2xl"></i>
@@ -50,6 +54,7 @@
                 <p class="text-slate-500 text-sm flex-grow">Imports incomplete tasks (Not Started/Blocked) and action items from the last report for review.</p>
             </button>
 
+            <!-- Option C: View Only -->
             <button onclick="document.getElementById('viewFileInput').click()" class="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200 hover:border-amber-500 hover:shadow-md transition-all text-left flex flex-col h-full">
                 <div class="mb-4 bg-amber-50 w-12 h-12 rounded-xl flex items-center justify-center text-amber-600 group-hover:scale-110 transition-transform">
                     <i class="ph ph-chart-line-up text-2xl"></i>
@@ -62,8 +67,10 @@
         <p class="mt-8 text-xs text-slate-400">All data is processed locally in your browser.</p>
     </div>
 
+    <!-- VIEW 2: MAIN DASHBOARD -->
     <div id="dashboardView" class="hidden-view min-h-screen pb-20">
         
+        <!-- HEADER -->
         <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
                 <div class="flex items-center gap-3 cursor-pointer" onclick="confirmExit()">
@@ -77,29 +84,36 @@
                 </div>
                 
                 <div class="flex items-center gap-2" id="headerControls">
-                    </div>
+                    <!-- Injected JS based on mode -->
+                </div>
             </div>
         </header>
 
         <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
+            <!-- METADATA & ATTENDANCE -->
             <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Meeting Details -->
                 <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <h3 class="font-bold text-slate-800 text-sm mb-4 border-b border-slate-100 pb-2">Meeting Details</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="metadataContainer">
-                        </div>
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
 
+                <!-- Attendance Check -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
                     <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-2">
                          <h3 class="font-bold text-slate-800 text-sm">Attendance</h3>
                          <span id="attendanceCount" class="text-xs font-medium bg-slate-100 px-2 py-0.5 rounded text-slate-600">0/0</span>
                     </div>
                     <div id="attendanceList" class="flex-grow overflow-y-auto max-h-32 grid grid-cols-2 gap-2 custom-scrollbar p-1">
-                        </div>
+                        <!-- Populated by JS -->
+                    </div>
                 </div>
             </section>
 
+            <!-- MAIN TABLE -->
             <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[400px]">
                 <div class="p-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
                     <div>
@@ -127,23 +141,20 @@
                             </tr>
                         </thead>
                         <tbody id="task-table-body" class="text-sm text-slate-700 divide-y divide-slate-100">
-                            </tbody>
+                            <!-- Rows -->
+                        </tbody>
                     </table>
                     <div id="emptyStateMsg" class="hidden p-8 text-center text-slate-400 text-sm">
                         <i class="ph ph-list-dashes text-2xl mb-2"></i>
                         <p>No tasks found.</p>
                     </div>
                 </div>
-
-                <div class="p-3 border-t border-slate-100 bg-slate-50 flex justify-center">
-                    <button id="addTaskBtnBottom" onclick="addNewRow()" class="flex items-center gap-2 text-xs bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded-lg hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-600 font-medium transition-all shadow-sm">
-                        <i class="ph ph-plus-bold"></i> Add Another Task
-                    </button>
-                </div>
             </section>
 
+            <!-- BOTTOM SECTION: ANALYTICS & ACTIONS -->
             <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
+                <!-- Analytics Column 1: Overall Status -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <h3 class="font-bold text-slate-800 text-sm mb-4">Status Overview</h3>
                     <div class="flex items-center justify-center">
@@ -154,6 +165,7 @@
                     <div id="statsLegend" class="flex justify-center gap-4 mt-2"></div>
                 </div>
 
+                <!-- Analytics Column 2: Project Breakdown -->
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
                     <h3 class="font-bold text-slate-800 text-sm mb-4">Project Statistics</h3>
                     <div class="flex items-center justify-center">
@@ -163,6 +175,7 @@
                     </div>
                 </div>
 
+                <!-- Action Items (Full Width) -->
                 <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 flex flex-col">
                     <div class="p-4 border-b border-slate-100 bg-amber-50/30 flex justify-between items-center">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -176,7 +189,8 @@
                             <input type="text" id="newActionInput" placeholder="Describe new action item..." class="flex-1 text-sm bg-transparent border-none focus:ring-0 outline-none">
                             <div class="w-px bg-slate-300 my-1"></div>
                             <select id="newActionOwner" class="w-32 text-xs bg-transparent border-none focus:ring-0 outline-none text-slate-600 cursor-pointer">
-                                </select>
+                                <!-- Populated by JS -->
+                            </select>
                             <button type="submit" class="bg-slate-800 text-white px-3 py-1 rounded text-xs hover:bg-slate-700 font-medium">Add</button>
                         </form>
                     </div>
@@ -184,11 +198,13 @@
 
             </section>
 
+            <!-- HANDOVER & HIGHLIGHTS -->
             <section class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                  <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-                      <h3 class="font-bold text-slate-800 text-sm mb-2">Executive Summary / Highlights</h3>
-                      <div id="highlightsContainer">
-                        </div>
+                     <h3 class="font-bold text-slate-800 text-sm mb-2">Executive Summary / Highlights</h3>
+                     <div id="highlightsContainer">
+                        <!-- Populated by JS (Textarea or Static text) -->
+                     </div>
                 </div>
                 
                 <div class="bg-indigo-50 rounded-xl border border-indigo-100 p-5">
@@ -197,7 +213,8 @@
                         <div>
                             <label class="block text-xs font-semibold uppercase text-indigo-400 mb-1">Next Facilitator</label>
                              <div id="nextFacilContainer">
-                                 </div>
+                                 <!-- Populated by JS -->
+                             </div>
                         </div>
                         <p class="text-xs text-indigo-600/80 italic">
                             The exported report will contain the current Team & Project configuration, so the next facilitator doesn't need to set it up again.
@@ -209,6 +226,7 @@
         </main>
     </div>
 
+    <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="fixed inset-0 z-50 hidden opacity-0 pointer-events-none modal">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="toggleSettingsModal()"></div>
         <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden">
@@ -220,6 +238,7 @@
                 <button onclick="toggleSettingsModal()" class="text-slate-400 hover:text-slate-600"><i class="ph ph-x text-lg"></i></button>
             </div>
             <div class="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+                <!-- Team Members -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Team Members</label>
                     <div class="flex gap-2 mb-3">
@@ -229,6 +248,7 @@
                     <div id="membersList" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div class="border-t border-slate-100 my-2"></div>
+                <!-- Projects -->
                 <div>
                     <label class="block text-sm font-semibold text-slate-700 mb-2">Active Projects</label>
                     <div class="flex gap-2 mb-3">
@@ -244,13 +264,14 @@
         </div>
     </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         // --- 1. APP STATE & DEFAULTS ---
         const defaultState = {
             members: [], 
             projects: [],
             tasks: [],
-            actionItems: [], 
+            actionItems: [], // { done: bool, owner: str, desc: str, isCarriedOver: bool }
             attendees: [],
             meta: { date: new Date().toISOString().split('T')[0], facilitator: '', day: 'Monday', nextFacil: '', highlights: '' },
             readOnly: false
@@ -300,8 +321,8 @@
                         <i class="ph ph-eye"></i> View Only
                     </span>
                 `;
+                // Hide inputs
                 document.getElementById('addTaskBtn').classList.add('hidden');
-                document.getElementById('addTaskBtnBottom').classList.add('hidden');
                 document.getElementById('actionInputForm').classList.add('hidden');
             } else {
                 document.getElementById('headerTitle').textContent = 'TeamSync';
@@ -315,7 +336,6 @@
                     </button>
                 `;
                 document.getElementById('addTaskBtn').classList.remove('hidden');
-                document.getElementById('addTaskBtnBottom').classList.remove('hidden');
                 document.getElementById('actionInputForm').classList.remove('hidden');
             }
         }
@@ -326,6 +346,7 @@
             const nextFacilContainer = document.getElementById('nextFacilContainer');
 
             if (appState.readOnly) {
+                // Read Only View
                 container.innerHTML = `
                     <div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Date</label><span class="font-medium text-slate-900">${appState.meta.date}</span></div>
                     <div><label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Facilitator</label><span class="font-medium text-slate-900">${appState.meta.facilitator}</span></div>
@@ -334,6 +355,7 @@
                 highlightsContainer.innerHTML = `<div class="p-3 bg-slate-50 rounded-lg text-sm text-slate-700">${appState.meta.highlights || 'No highlights recorded.'}</div>`;
                 nextFacilContainer.innerHTML = `<span class="font-medium text-indigo-900">${appState.meta.nextFacil || 'TBD'}</span>`;
             } else {
+                // Edit View
                 container.innerHTML = `
                     <div>
                         <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Date</label>
@@ -356,6 +378,8 @@
                 `;
                 highlightsContainer.innerHTML = `<textarea id="highlightsInput" onchange="appState.meta.highlights = this.value" class="w-full text-sm text-slate-600 border border-slate-200 rounded-lg p-3 focus:border-indigo-500 focus:outline-none resize-none h-24" placeholder="Briefly summarize major wins...">${appState.meta.highlights}</textarea>`;
                 nextFacilContainer.innerHTML = `<select id="nextFacilitator" onchange="appState.meta.nextFacil = this.value" class="w-full text-sm font-medium text-indigo-900 border border-indigo-200 rounded px-2 py-2 focus:border-indigo-500 focus:outline-none bg-white"></select>`;
+                
+                // Set Values for selects after rendering
                 document.getElementById('meetingDay').value = appState.meta.day;
             }
         }
@@ -482,10 +506,12 @@
                 if(task.status === 'Not Started') statusBg = 'bg-slate-200 text-slate-700';
                 if(task.status === 'Blocked') statusBg = 'bg-rose-100 text-rose-800';
 
+                // PLAN placeholder logic: If task is "In Progress", show "Optional"
                 const planPlaceholder = "Optional / New Commitment";
 
                 if (appState.readOnly) {
-                      tr.innerHTML = `
+                    // READ ONLY ROW
+                     tr.innerHTML = `
                         <td class="p-2 pl-4"><span class="text-sm font-medium text-slate-900">${task.member}</span></td>
                         <td class="p-2"><span class="text-xs bg-slate-100 rounded px-2 py-1 text-slate-600">${task.project}</span></td>
                         <td class="p-2"><span class="text-sm text-slate-700">${task.task}</span></td>
@@ -495,6 +521,7 @@
                         <td class="p-2"></td>
                     `;
                 } else {
+                    // EDIT ROW
                     const memberOpts = appState.members.length > 0 ? appState.members.map(m => `<option value="${m}" ${m === task.member ? 'selected' : ''}>${m}</option>`).join('') : `<option value="">Add Members</option>`;
                     const projectOpts = appState.projects.length > 0 ? appState.projects.map(p => `<option value="${p}" ${p === task.project ? 'selected' : ''}>${p}</option>`).join('') : `<option value="">Add Projects</option>`;
                     
@@ -577,15 +604,19 @@
         // --- 7. CHARTS ---
 
         function updateCharts() {
+            // 1. Overall Status
             const stats = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
             const projectStats = {}; 
 
             appState.tasks.forEach(t => {
                 const s = t.status.replace(' ', '');
+                
+                // Overall Stats
                 if(stats[s] !== undefined) stats[s]++;
                 else if(t.status === 'In Progress') stats.InProgress++;
                 else if(t.status === 'Not Started') stats.NotStarted++;
 
+                // Project Stats
                 if (!projectStats[t.project]) {
                     projectStats[t.project] = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
                 }
@@ -596,6 +627,7 @@
                 else pStat.NotStarted++;
             });
 
+            // Status Chart
             const dataStatus = [stats.Completed, stats.InProgress, stats.NotStarted, stats.Blocked];
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
@@ -613,6 +645,7 @@
                 <div class="text-center"><div class="text-lg font-bold text-rose-500">${stats.Blocked}</div><div class="text-[10px] uppercase text-slate-400 font-bold">Blocked</div></div>
             `;
 
+            // 2. Project Chart (Stacked Bar)
             const projects = Object.keys(projectStats);
             const datasetCompleted = projects.map(p => projectStats[p].Completed);
             const datasetInProgress = projects.map(p => projectStats[p].InProgress);
@@ -667,7 +700,8 @@
         }
 
         function parseMarkdown(mdText, mode) {
-            const configMatch = mdText.match(//);
+            // 1. Config Parsing
+            const configMatch = mdText.match(/<!-- CONFIG_DATA_START([\s\S]*?)CONFIG_DATA_END -->/);
             if (configMatch && configMatch[1]) {
                 try {
                     const loadedConfig = JSON.parse(configMatch[1].trim());
@@ -676,6 +710,7 @@
                 } catch(e) { console.error("Config parse error", e); }
             }
 
+            // 2. Metadata Extraction
             const dateMatch = mdText.match(/\*\*Date:\*\* (.*)/);
             if(dateMatch) appState.meta.date = dateMatch[1].trim();
 
@@ -699,6 +734,7 @@
             const nextFacilMatch = mdText.match(/\* \*\*Next Facilitator:\*\* (.*)/);
             if(nextFacilMatch) appState.meta.nextFacil = nextFacilMatch[1].trim();
 
+            // 3. Action Items Extraction
             appState.actionItems = [];
             const actionSection = mdText.match(/## 3. .*?\n([\s\S]*?)## 4./);
             if(actionSection) {
@@ -707,6 +743,7 @@
                     const m = l.match(/\* \[(.*?)\] \*\*(.*?)\*\*: (.*)/);
                     if(m) {
                         const isDone = m[1].trim() === 'x';
+                        // LOGIC: In View mode, show all. In Edit mode, ONLY show incomplete.
                         if (mode === 'view' || (mode === 'edit' && !isDone)) {
                             appState.actionItems.push({
                                 done: isDone, 
@@ -719,6 +756,7 @@
                 });
             }
 
+            // 4. Task Table Parsing - IMPROVED LOGIC
             const lines = mdText.split('\n');
             const newTasks = [];
             
@@ -738,6 +776,7 @@
                 const rawBlocker = clean(cols[5]);
 
                 if (mode === 'view') {
+                    // VIEW MODE: Load exactly as is
                     newTasks.push({
                         id: Date.now() + Math.random(),
                         member: rawMember,
@@ -748,23 +787,30 @@
                         blockers: rawBlocker
                     });
                 } else {
+                    // EDIT MODE (Smart Import)
+                    
+                    // Logic 1: If Task is NOT Completed, Keep it.
+                    // This allows reviewing "Not Started", "Blocked", "In Progress"
                     if (rawStatus !== 'Completed') {
                         newTasks.push({
                             id: Date.now() + Math.random(),
                             member: rawMember,
                             project: rawProject,
-                            task: rawTask,
-                            status: rawStatus,
-                            plan: '',
+                            task: rawTask, // Keep the old task name
+                            status: rawStatus, // Keep old status (user can update it)
+                            plan: '', // Clear plan (it's a new day)
                             blockers: rawBlocker
                         });
                     }
+
+                    // Logic 2: If Task IS Completed, check if there was a Plan.
+                    // If plan exists, promote it to a NEW task.
                     if (rawStatus === 'Completed' && rawPlan && rawPlan.length > 2 && rawPlan !== '-') {
                         newTasks.push({
                             id: Date.now() + Math.random(),
                             member: rawMember,
                             project: rawProject,
-                            task: rawPlan,
+                            task: rawPlan, // Promoted Plan -> Task
                             status: 'Not Started', 
                             plan: '',
                             blockers: ''
@@ -788,17 +834,11 @@
             const highlights = document.getElementById('highlightsInput').value;
             const absentees = appState.members.filter(m => !appState.attendees.includes(m));
 
-            const sortedTasks = [...appState.tasks].sort((a, b) => {
-                const nameA = a.member || '';
-                const nameB = b.member || '';
-                return nameA.localeCompare(nameB);
-            });
-
-            // FIXED: Removed risky 'if' logic and replaced with object lookup to ensure parser safety
-            const icons = { 'Completed': '✅', 'In Progress': '⚠️', 'Blocked': '🛑' };
-
-            const tableRows = sortedTasks.map(t => {
-                const icon = icons[t.status] || '⚪';
+            const tableRows = appState.tasks.map(t => {
+                let icon = '⚪';
+                if(t.status === 'Completed') icon = '✅';
+                if(t.status === 'In Progress') icon = '⚠️';
+                if(t.status === 'Blocked') icon = '🛑';
                 return `| **${t.member}** | ${t.project} | ${t.task || 'New Task'} | ${icon} ${t.status} | ${t.plan || '-'} | ${t.blockers || 'None'} |`;
             }).join('\n');
 
@@ -832,6 +872,9 @@ ${actionRows}
 * **Next Facilitator:** ${nextFacil}
 * **Generated by:** TeamSync Tool
 
+<!-- CONFIG_DATA_START
+${configJson}
+CONFIG_DATA_END -->
 `;
 
             const blob = new Blob([markdown], { type: 'text/markdown' });
