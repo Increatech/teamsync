@@ -149,6 +149,11 @@
                         <p>No tasks found.</p>
                     </div>
                 </div>
+                <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-center">
+                    <button id="addTaskBtnBottom" onclick="addNewRow()" class="flex items-center gap-1 text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 font-medium transition-colors shadow-sm shadow-indigo-100">
+                        <i class="ph ph-plus-bold"></i> Add Task
+                    </button>
+                </div>
             </section>
 
             <!-- BOTTOM SECTION: ANALYTICS & ACTIONS -->
@@ -323,6 +328,7 @@
                 `;
                 // Hide inputs
                 document.getElementById('addTaskBtn').classList.add('hidden');
+                document.getElementById('addTaskBtnBottom').classList.add('hidden');
                 document.getElementById('actionInputForm').classList.add('hidden');
             } else {
                 document.getElementById('headerTitle').textContent = 'TeamSync';
@@ -336,6 +342,7 @@
                     </button>
                 `;
                 document.getElementById('addTaskBtn').classList.remove('hidden');
+                document.getElementById('addTaskBtnBottom').classList.remove('hidden');
                 document.getElementById('actionInputForm').classList.remove('hidden');
             }
         }
@@ -505,6 +512,7 @@
                 if(task.status === 'In Progress') statusBg = 'bg-amber-100 text-amber-800';
                 if(task.status === 'Not Started') statusBg = 'bg-slate-200 text-slate-700';
                 if(task.status === 'Blocked') statusBg = 'bg-rose-100 text-rose-800';
+                if(task.status === 'On Hold') statusBg = 'bg-purple-100 text-purple-800';
 
                 // PLAN placeholder logic: If task is "In Progress", show "Optional"
                 const planPlaceholder = "Optional / New Commitment";
@@ -535,6 +543,7 @@
                                 <option value="In Progress" ${task.status === 'In Progress' ? 'selected' : ''}>⚠️ In Progress</option>
                                 <option value="Not Started" ${task.status === 'Not Started' ? 'selected' : ''}>⚪ Not Started</option>
                                 <option value="Blocked" ${task.status === 'Blocked' ? 'selected' : ''}>🛑 Blocked</option>
+                                <option value="On Hold" ${task.status === 'On Hold' ? 'selected' : ''}>⏸️ On Hold</option>
                             </select>
                         </td>
                         <td class="p-2"><input type="text" value="${task.plan}" onchange="updateTask(${index}, 'plan', this.value)" class="w-full bg-transparent text-sm border-none focus:ring-0 placeholder-slate-400" placeholder="${planPlaceholder}"></td>
@@ -605,7 +614,7 @@
 
         function updateCharts() {
             // 1. Overall Status
-            const stats = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
+            const stats = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0, OnHold: 0 };
             const projectStats = {}; 
 
             appState.tasks.forEach(t => {
@@ -615,27 +624,29 @@
                 if(stats[s] !== undefined) stats[s]++;
                 else if(t.status === 'In Progress') stats.InProgress++;
                 else if(t.status === 'Not Started') stats.NotStarted++;
+                else if(t.status === 'On Hold') stats.OnHold++;
 
                 // Project Stats
                 if (!projectStats[t.project]) {
-                    projectStats[t.project] = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0 };
+                    projectStats[t.project] = { Completed: 0, InProgress: 0, NotStarted: 0, Blocked: 0, OnHold: 0 };
                 }
                 const pStat = projectStats[t.project];
                 if(t.status === 'Completed') pStat.Completed++;
                 else if(t.status === 'In Progress') pStat.InProgress++;
                 else if(t.status === 'Blocked') pStat.Blocked++;
+                else if(t.status === 'On Hold') pStat.OnHold++;
                 else pStat.NotStarted++;
             });
 
             // Status Chart
-            const dataStatus = [stats.Completed, stats.InProgress, stats.NotStarted, stats.Blocked];
+            const dataStatus = [stats.Completed, stats.InProgress, stats.NotStarted, stats.Blocked, stats.OnHold];
             const ctxStatus = document.getElementById('statusChart').getContext('2d');
             if(statusChart) statusChart.destroy();
             statusChart = new Chart(ctxStatus, {
                 type: 'doughnut',
                 data: {
-                    labels: ['Done', 'Active', 'Not Started', 'Blocked'],
-                    datasets: [{ data: dataStatus, backgroundColor: ['#10b981', '#f59e0b', '#e2e8f0', '#e11d48'], borderWidth: 0 }]
+                    labels: ['Done', 'Active', 'Not Started', 'Blocked', 'On Hold'],
+                    datasets: [{ data: dataStatus, backgroundColor: ['#10b981', '#f59e0b', '#e2e8f0', '#e11d48', '#a855f7'], borderWidth: 0 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { display: false } } }
             });
@@ -650,6 +661,7 @@
             const datasetCompleted = projects.map(p => projectStats[p].Completed);
             const datasetInProgress = projects.map(p => projectStats[p].InProgress);
             const datasetBlocked = projects.map(p => projectStats[p].Blocked);
+            const datasetOnHold = projects.map(p => projectStats[p].OnHold);
             
             const ctxProject = document.getElementById('projectChart').getContext('2d');
             if(projectChart) projectChart.destroy();
@@ -660,7 +672,8 @@
                     datasets: [
                         { label: 'Done', data: datasetCompleted, backgroundColor: '#10b981', borderRadius: 4 },
                         { label: 'Active', data: datasetInProgress, backgroundColor: '#f59e0b', borderRadius: 4 },
-                        { label: 'Blocked', data: datasetBlocked, backgroundColor: '#e11d48', borderRadius: 4 }
+                        { label: 'Blocked', data: datasetBlocked, backgroundColor: '#e11d48', borderRadius: 4 },
+                        { label: 'On Hold', data: datasetOnHold, backgroundColor: '#a855f7', borderRadius: 4 }
                     ]
                 },
                 options: {
@@ -834,11 +847,19 @@
             const highlights = document.getElementById('highlightsInput').value;
             const absentees = appState.members.filter(m => !appState.attendees.includes(m));
 
-            const tableRows = appState.tasks.map(t => {
+            // Sort tasks by team member for better readability
+            const sortedTasks = [...appState.tasks].sort((a, b) => {
+                if (a.member < b.member) return -1;
+                if (a.member > b.member) return 1;
+                return 0;
+            });
+
+            const tableRows = sortedTasks.map(t => {
                 let icon = '⚪';
                 if(t.status === 'Completed') icon = '✅';
                 if(t.status === 'In Progress') icon = '⚠️';
                 if(t.status === 'Blocked') icon = '🛑';
+                if(t.status === 'On Hold') icon = '⏸️';
                 return `| **${t.member}** | ${t.project} | ${t.task || 'New Task'} | ${icon} ${t.status} | ${t.plan || '-'} | ${t.blockers || 'None'} |`;
             }).join('\n');
 
@@ -863,7 +884,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 ${tableRows}
 
-*Legend: ✅ Completed | ⚠️ In Progress | 🛑 Blocked | ⚪ Not Started*
+*Legend: ✅ Completed | ⚠️ In Progress | 🛑 Blocked | ⚪ Not Started | ⏸️ On Hold*
 
 ## 3. ⚡ Action Items
 ${actionRows}
