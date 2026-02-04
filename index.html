@@ -784,7 +784,7 @@
                 const rawMember = clean(cols[0]);
                 const rawProject = clean(cols[1]);
                 const rawTask = clean(cols[2]);
-                const rawStatus = clean(cols[3]).replace(/✅|⚠️|🛑|⚪/g, '').trim();
+                const rawStatus = clean(cols[3]).replace(/✅|⚠️|🛑|⚪|⏸️/g, '').trim();
                 const rawPlan = clean(cols[4]);
                 const rawBlocker = clean(cols[5]);
 
@@ -802,8 +802,9 @@
                 } else {
                     // EDIT MODE (Smart Import)
                     
-                    // Logic 1: If Task is NOT Completed, Keep it.
-                    // This allows reviewing "Not Started", "Blocked", "In Progress"
+                    // Logic: Import only incomplete tasks for review
+                    // Includes: "Not Started", "Blocked", "In Progress", "On Hold"
+                    // Excludes: "Completed" tasks (they're done, no need to carry forward)
                     if (rawStatus !== 'Completed') {
                         newTasks.push({
                             id: Date.now() + Math.random(),
@@ -815,20 +816,11 @@
                             blockers: rawBlocker
                         });
                     }
-
-                    // Logic 2: If Task IS Completed, check if there was a Plan.
-                    // If plan exists, promote it to a NEW task.
-                    if (rawStatus === 'Completed' && rawPlan && rawPlan.length > 2 && rawPlan !== '-') {
-                        newTasks.push({
-                            id: Date.now() + Math.random(),
-                            member: rawMember,
-                            project: rawProject,
-                            task: rawPlan, // Promoted Plan -> Task
-                            status: 'Not Started', 
-                            plan: '',
-                            blockers: ''
-                        });
-                    }
+                    
+                    // Note: Completed tasks are NOT imported in edit mode.
+                    // Previously, there was logic here that would create new tasks from
+                    // completed task plans, but this caused issues where retrospective
+                    // comments were incorrectly treated as new commitments.
                 }
             });
 
