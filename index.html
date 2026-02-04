@@ -812,7 +812,7 @@
                             project: rawProject,
                             task: rawTask, // Keep the old task name
                             status: rawStatus, // Keep old status (user can update it)
-                            plan: '', // Clear plan (it's a new day)
+                            plan: rawPlan, // Keep the old plan
                             blockers: rawBlocker
                         });
                     }
